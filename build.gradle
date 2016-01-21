@@ -1,0 +1,80 @@
+///////////////////////////////////////////////////////////////////////////////////////
+//
+// etf-bsx-ae
+//
+///////////////////////////////////////////////////////////////////////////////////////
+
+buildscript {
+	repositories {
+		maven {
+			url "http://services.interactive-instruments.de/etfdev-af/plugins-releases-local"
+			credentials {
+				username 'ii-bda'
+				password '6ozhS683'
+			}}
+		jcenter()
+	}
+	dependencies {
+		classpath group: 'de.interactive_instruments.bda', name: 'etf-bda', version:'1.0.+'
+		classpath 'net.researchgate:gradle-release:2.2.1'
+	}
+	dependencies {
+		ant.unjar src: configurations.classpath.files.find {it.path.contains('etf')}, dest: 'build/gradle'
+	}
+}
+apply from: 'build/gradle/ii-bda.gradle'
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+group = 'de.interactive_instruments.etf.bsxm'
+description = "ETF adapter and extension functions for BaseX-based test projects."
+
+
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'eclipse'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+ext.logbackVersion = '1.1.2'
+ext.basexVersion = '7.9'
+
+configurations {
+  runtime.exclude group: "org.slf4j", module: "slf4j-log4j12"
+  runtime.exclude group: "org.slf4j", module: "slf4j-nop"
+}
+
+dependencies {
+
+  compile "org.basex:basex-api:$basexVersion"
+
+	compile group: 'de.interactive_instruments', name: 'ii-commons-util', version:'1.2.6'+project.snapshotSuffix
+
+  testCompile group: 'junit', name: 'junit', version: '4.11'
+  testCompile "org.basex:basex:$basexVersion"
+  testCompile "ch.qos.logback:logback-classic:$logbackVersion"
+	testCompile "ch.qos.logback:logback-core:$logbackVersion"
+
+}
+
+jar.doFirst {
+	manifest {
+		attributes(
+				// Other manifest attributes are added by ii-bda
+				// 'Main-Class': 'de.interactive_instruments.etf.bsxm.BSX',
+		)
+	}
+}
+
+jar.doFirst {
+    from configurations.compile -
+            configurations.compile.filter { it.name.startsWith('basex') } -
+            configurations.compile.filter { it.name.startsWith('sl4j') } -
+            configurations.compile.filter { it.name.startsWith('xmldb-api') } -
+            configurations.compile.filter { it.name.startsWith('milton') }
+}
+
+task showCompileDep << {
+    configurations.compile.each { println it }
+}
