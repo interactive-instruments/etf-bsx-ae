@@ -29,6 +29,7 @@ declare namespace svrlii='http://www.interactive-instruments.de/svrl';
 (: FUNCTIONS :)
 (:===========:)
 
+
 declare function local:create-messages($failedAssertsOrReports as element()*, $svrlii as element(), $printExactLocationEvaluated as xs:boolean) as element() {
   
   let $idsOfFailedAssertsOrReports := distinct-values($failedAssertsOrReports/@id)
@@ -160,6 +161,32 @@ declare function local:evaluate($svrlii as element(), $sch as document-node(), $
   <etf:Duration>{$svrlii/svrlii:totalDuration/text()}</etf:Duration>
   <etf:Label>Schematron Validation</etf:Label>
   <etf:TestCaseResults>
+  
+    <etf:TestCaseResult id="Result.Etf.Internal" testCaseRef="Etf.Internal">
+      <etf:ResultStatus>{if($validationErrors) then 'FAILED' else 'OK'}</etf:ResultStatus>
+      <etf:TestStepResults>
+        <etf:TestStepResult id="Result.Etf.Internal.Validation" testStepRef="Etf.Internal.Validation">
+          <etf:ResultStatus>{if($validationErrors) then 'FAILED' else 'OK'}</etf:ResultStatus>
+          <etf:Duration/>
+          <etf:StartTimestamp/>
+          <etf:Resource>Database: '{$dbBaseName}'; Files: '{$Files_to_test}';</etf:Resource>
+          <etf:AssertionResults>
+            <etf:AssertionResult id="Result.Etf.Internal.Validation.Xml" testAssertionRef="Etf.Internal.Validation.Xml">
+            {
+              if($validationErrors) then
+                <etf:Messages>
+                  <etf:Message xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="stringDataContainer" name="Meldungen">{$validationErrors}</etf:Message>
+                </etf:Messages>
+              else
+                <etf:Messages xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+            }
+              <etf:Duration/>
+              <etf:ResultStatus>{if($validationErrors) then 'FAILED' else 'OK'}</etf:ResultStatus>
+            </etf:AssertionResult>
+          </etf:AssertionResults>
+        </etf:TestStepResult>
+      </etf:TestStepResults>
+    </etf:TestCaseResult>
 {
            
     for $pattern in $sch/*/iso:pattern
@@ -220,6 +247,55 @@ declare function local:evaluate($svrlii as element(), $sch as document-node(), $
 </etf:TestSuiteResults>
 
 <etf:TestCases>
+
+  <etf:TestCase id="Etf.Internal">
+    <etf:Label>ETF standard checks</etf:Label>
+    <etf:Description>Standard checks performed by ETF</etf:Description>
+    <etf:VersionData>
+      <etf:Version>0.1</etf:Version>
+      <etf:CreationDate>2016-01-22T17:00:00+0100</etf:CreationDate>
+      <etf:LastUpdateDate>2016-01-22T17:00:00+0100</etf:LastUpdateDate>
+      <etf:Hash/>
+      <etf:Author>interactive instruments GmbH</etf:Author>
+      <etf:LastEditor>Johannes Echterhoff</etf:LastEditor>
+    </etf:VersionData>
+    <etf:AssociatedRequirements>
+      <etf:Requirement>ETF</etf:Requirement>
+    </etf:AssociatedRequirements>
+    <etf:Properties>
+      <ii:Items xmlns:ii="http://www.interactive-instruments.de/ii/1.0">
+        <ii:Item name="ShortDescription">
+          <ii:value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">Standard checks</ii:value>
+        </ii:Item>
+        <ii:Item name="Reference">
+          <ii:value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">Standard ETF behavior</ii:value>
+        </ii:Item>
+      </ii:Items>
+    </etf:Properties>
+    <etf:TestSteps>
+      <etf:TestStep id="Etf.Internal.Validation">
+        <etf:Label>Validation</etf:Label>
+        <etf:Description/>
+        <etf:Assertions>
+          <etf:Assertion id="Etf.Internal.Validation.Xml">
+            <etf:Label>XML Validation</etf:Label>
+            <etf:Properties>
+              <ii:Items xmlns:ii="http://www.interactive-instruments.de/ii/1.0">
+                <ii:Item name="RequirementReference">
+                  <ii:value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">ETF#Etf.Internal.Validation.Xml</ii:value>
+                </ii:Item>
+              </ii:Items>
+            </etf:Properties>
+            <etf:Type>ETF internal XML processing</etf:Type>
+            <etf:Expression/>
+            <etf:Status>IMPLEMENTED</etf:Status>
+          </etf:Assertion>
+        </etf:Assertions>
+      </etf:TestStep>
+    </etf:TestSteps>
+    <etf:status>IMPLEMENTED</etf:status>
+  </etf:TestCase>
+
 {
    for $pattern in $sch/*/iso:pattern
       let $patternId := $pattern/@id
@@ -229,7 +305,7 @@ declare function local:evaluate($svrlii as element(), $sch as document-node(), $
           <etf:Description/>
           <etf:VersionData/>
       <etf:AssociatedRequirements>
-        <etf:Requirement>SCHEMATRON</etf:Requirement>
+        <etf:Requirement>{$requirementsId}</etf:Requirement>
       </etf:AssociatedRequirements>
       <etf:Properties/>
       <etf:TestSteps>
@@ -290,6 +366,42 @@ declare function local:evaluate($svrlii as element(), $sch as document-node(), $
 }
 </etf:TestCases>
 <etf:Requirements>
+  <etf:Requirement id="ETF">
+    <etf:Label>ETF</etf:Label>
+    <etf:Description/>
+    <etf:Properties>
+        <ii:Items>
+            <ii:Item name="SpecificationReference">
+                <ii:value xsi:type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Standard ETF behavior</ii:value>
+            </ii:Item>
+        </ii:Items>
+    </etf:Properties>
+    <etf:SubRequirements>
+      <etf:Requirement>ETF#Etf.Internal.Validation.Xml</etf:Requirement>
+    </etf:SubRequirements>
+  </etf:Requirement>
+  <etf:Requirement id="ETF#Etf.Internal.Validation.Xml">
+    <etf:VersionData/>
+    <etf:Label>ETF#Etf.Internal.Validation.Xml</etf:Label>
+    <etf:Properties>
+      <ii:Items xmlns:ii="http://www.interactive-instruments.de/ii/1.0">
+        <ii:Item name="Name">
+          <ii:value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">XML Validation</ii:value>
+        </ii:Item>
+        <ii:Item name="ShortDescription">
+          <ii:value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">XML must be well-formed and - if so configured - XML Schema compliant</ii:value>
+        </ii:Item>
+        <ii:Item name="Description">
+          <ii:value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">The well-formedness and - if configured for this test project - compliance with the XML Schema of all files is checked.</ii:value>
+        </ii:Item>
+        <ii:Item name="Reference">
+          <ii:value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">Standard ETF behavior</ii:value>
+        </ii:Item>
+      </ii:Items>
+    </etf:Properties>
+    <etf:SubRequirements/>
+  </etf:Requirement>
   <etf:Requirement id="{$requirementsId}">
   <etf:Label>{$requirementsId}</etf:Label>
   <etf:Description/>
@@ -301,43 +413,43 @@ declare function local:evaluate($svrlii as element(), $sch as document-node(), $
           </ii:Item>
       </ii:Items>
   </etf:Properties>
-  <etf:SubRequirements>
+  <etf:SubRequirements>    
   {
     for $assertOrReport in $sch//*[local-name() = 'assert' or local-name() = 'report']
       return
         <etf:Requirement>{$requirementsId}#{string($assertOrReport/@id)}</etf:Requirement>            
   }
   </etf:SubRequirements>
-  </etf:Requirement>
+  </etf:Requirement>  
   {
      for $assertOrReport in $sch//*[local-name() = 'assert' or local-name() = 'report']
        let $assertOrReportId := string($assertOrReport/@id)
       return
               
       <etf:Requirement id="{$requirementsId}#{$assertOrReportId}">
-      <etf:VersionData/>
-      <etf:Label>{$assertOrReportId}</etf:Label>      
-      <etf:Properties>
-          <ii:Items>
-            <ii:Item name="Name">
-            <ii:value xsi:type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not available</ii:value>
-           </ii:Item>
-           <ii:Item name="ShortDescription">
+        <etf:VersionData/>
+        <etf:Label>{$assertOrReportId}</etf:Label>      
+        <etf:Properties>
+            <ii:Items>
+              <ii:Item name="Name">
               <ii:value xsi:type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not available</ii:value>
-           </ii:Item>
-           <ii:Item name="Description">
-            <ii:value xsi:type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not available</ii:value>
-           </ii:Item>
-              <ii:Item name="Reference">
-                  <ii:value xsi:type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not available</ii:value>
-              </ii:Item>
-          </ii:Items>
-      </etf:Properties>
-      <etf:SubRequirements/>
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not available</ii:value>
+             </ii:Item>
+             <ii:Item name="ShortDescription">
+                <ii:value xsi:type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not available</ii:value>
+             </ii:Item>
+             <ii:Item name="Description">
+              <ii:value xsi:type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not available</ii:value>
+             </ii:Item>
+                <ii:Item name="Reference">
+                    <ii:value xsi:type="xs:string" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not available</ii:value>
+                </ii:Item>
+            </ii:Items>
+        </etf:Properties>
+        <etf:SubRequirements/>
       </etf:Requirement>
   }
 </etf:Requirements>
@@ -367,14 +479,14 @@ declare variable $projDir external; (: path to folder that contains the schematr
 declare variable $outputFile external; (: path of result file :)
 
 declare variable $dbBaseName external;
-declare variable $dbCount external := 1;
+declare variable $dbCount external;
 declare variable $dbDir external;
 
-declare variable $reportLabel external := "schematron report label dummy";
-declare variable $reportStartTimestamp external := prof:current-ms();
-declare variable $reportId external := "schematron report id dummy";
-declare variable $testObjectId external := "test object id dummy";
-declare variable $validationErrors external := "";
+declare variable $reportLabel external;
+declare variable $reportStartTimestamp external;
+declare variable $reportId external;
+declare variable $testObjectId external;
+declare variable $validationErrors external;
 
 (:=============================:)
 (: Other variable declarations :)
