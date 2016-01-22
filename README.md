@@ -1,6 +1,6 @@
-# BaseX Xquery GML Geometry module
+# ETF BaseX Adapters & Extensions
 
-This module is required by BaseX based etf test projects.
+ETF adapter and extension functions for BaseX-based test projects.
 
 ## Build
 
