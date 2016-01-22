@@ -13,13 +13,17 @@ buildscript {
 				password '6ozhS683'
 			}}
 		jcenter()
+		maven {
+            url "https://plugins.gradle.org/m2/"
+        }
 	}
 	dependencies {
 		classpath group: 'de.interactive_instruments.bda', name: 'etf-bda', version:'1.0.+'
 		classpath 'net.researchgate:gradle-release:2.2.1'
+		classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.12.1"
 	}
 	dependencies {
-		ant.unjar src: configurations.classpath.files.find {it.path.contains('etf')}, dest: 'build/gradle'
+		ant.unjar src: configurations.classpath.files.find {it.path.contains('etf')}, dest: 'build/gradle'	
 	}
 }
 apply from: 'build/gradle/ii-bda.gradle'
@@ -33,6 +37,33 @@ description = "ETF adapter and extension functions for BaseX-based test projects
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'eclipse'
+apply plugin: "com.github.hierynomus.license"
+
+license {
+
+    ext.year = Calendar.getInstance().get(Calendar.YEAR)
+    ext.name = 'interactive instruments GmbH'
+    
+    dryRun = true
+
+    header rootProject.file('gradle/license-header')
+    strictCheck true
+    mapping {
+      sch = 'XML_STYLE'
+    }
+    excludes([
+    		"**/*.rnc",
+    		"**/*.rng",
+    		"**/*.xq",    		
+    		"testprojects/templates/schematron/iso-schematron-xslt1/Extract*",
+    		"testprojects/templates/schematron/iso-schematron-xslt1/iso*",
+    		"testprojects/templates/schematron/iso-schematron-xslt1/readme*",
+    		"testprojects/templates/schematron/schematron.sch",
+    		"org/basex",
+    		"schematron",
+    		"xml/imro2012"
+            ])
+}
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -49,7 +80,15 @@ dependencies {
 
   compile "org.basex:basex-api:$basexVersion"
 
-	compile group: 'de.interactive_instruments', name: 'ii-commons-util', version:'1.2.6'+project.snapshotSuffix
+  compile group: 'de.interactive_instruments', name: 'ii-commons-util', version:'1.2.6'+project.snapshotSuffix
+
+  compile('commons-io:commons-io:2.4')
+  compile('xalan:xalan:2.7.2') {
+    exclude group: 'xerces'
+    exclude group: 'xml-apis'
+  }
+
+  compile group: 'de.interactive_instruments.etf.bsxm', name: 'etf-gmlgeox', version: '1.0.1-SNAPSHOT'
 
   testCompile group: 'junit', name: 'junit', version: '4.11'
   testCompile "org.basex:basex:$basexVersion"
@@ -70,7 +109,7 @@ jar.doFirst {
 jar.doFirst {
     from configurations.compile -
             configurations.compile.filter { it.name.startsWith('basex') } -
-            configurations.compile.filter { it.name.startsWith('sl4j') } -
+            configurations.compile.filter { it.name.startsWith('sl4j') } -            
             configurations.compile.filter { it.name.startsWith('xmldb-api') } -
             configurations.compile.filter { it.name.startsWith('milton') }
 }
