@@ -165,7 +165,7 @@ public class XQuerySchematronTest {
 		/*
 		 * Determine parameters for query execution
 		 */
-		Map<String, String> params = paramMap(
+		Map<String, Object> params = paramMap(
 				"testResults/" + testName);
 
 		/*
@@ -231,19 +231,26 @@ public class XQuerySchematronTest {
 	 * @return
 	 * @throws IOException
 	 */
-	protected Map<String, String> paramMap(String projDirPath) throws IOException {
+	protected Map<String, Object> paramMap(String projDirPath) throws IOException {
 
-		Map<String, String> params = new HashMap<String, String>();
+		Map<String, Object> params = new HashMap<String, Object>();
 
 		params.put("projDir", (new File(projDirPath)).getCanonicalPath());
 		params.put("outputFile", (new File(projDirPath + "/result.xml")).getCanonicalPath());
 		params.put("dbBaseName", dbname_base);
-
+		params.put("dbCount", new Integer(1));
+		
+		params.put("reportLabel", "schematron report label dummy");
+		params.put("reportStartTimestamp", new Long(System.currentTimeMillis()));
+		params.put("reportId", "schematron report id dummy");
+		params.put("testObjectId", "test object id dummy");
+		params.put("validationErrors", "");
+		
 		return params;
 	}
 
 	protected String executeQuery(String projDirPath,
-			Map<String, String> variables, String xmlFolderPath,
+			Map<String, Object> variables, String xmlFolderPath,
 			String fileFilterExpression) throws Exception {
 
 		File xml = new File(xmlFolderPath);
@@ -265,10 +272,10 @@ public class XQuerySchematronTest {
 
 		// set parameters
 		if (variables != null) {
-			for (Entry<String, String> e : variables.entrySet()) {
+			for (Entry<String, Object> e : variables.entrySet()) {
 
 				String varName = e.getKey();
-				String varValue = e.getValue();
+				Object varValue = e.getValue();
 
 				qp.bind(varName, varValue);
 			}
