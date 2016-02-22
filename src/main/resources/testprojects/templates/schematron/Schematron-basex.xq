@@ -76,30 +76,32 @@ declare function local:strippath($path as xs:string) as xs:string
     replace($path,'\.[gGxX][mM][lL]','')
 };
 
-declare function local:validateSingleFile($file as document-node(), $sch as document-node(), $schAsXslt as document-node()) as element() {
+declare function local:validateSingleFile($file as document-node(), $sch as document-node(), $schAsXslt as document-node(), $xslSvrlFormatting1 as document-node(), $xslSvrlFormatting2 as document-node()) as element() {
   
   <svrlii:result>
   {
   let $filename := local:strippath(db:path($file))
   let $startTime := prof:current-ms()
   let $svrl := prof:time(xslt:transform($file,$schAsXslt),false(),concat('ISO Schematron XSL transformation - perform validation for file ',$filename,': '))
+  let $tmp := xslt:transform($svrl,$xslSvrlFormatting1)
+  let $result := xslt:transform($tmp,$xslSvrlFormatting2)
   let $endTime := prof:current-ms()
   let $validationDuration := $endTime - $startTime
   return
   (: gather active patterns, the fired rules (including their id and context) per pattern, and then the failed asserts or successful reports per rule (including their details - just copy the whole thing) :)
     (<svrlii:fileName>{$filename}</svrlii:fileName>,
-    for $activePattern in $svrl/*/svrl:active-pattern
+    for $activePattern in $result/*/svrl:active-pattern
     order by $activePattern/@id
     return 
       <svrlii:activePattern id="{string($activePattern/@id)}">
       {
-        let $idsOfFiredRulesOfPattern := distinct-values($svrl/*/svrl:fired-rule[preceding-sibling::svrl:active-pattern[1][@id = data($activePattern/@id)]]/string(@id))
+        let $idsOfFiredRulesOfPattern := distinct-values($activePattern/svrl:fired-rule/string(@id))
         for $firedRuleId in $idsOfFiredRulesOfPattern
         order by $firedRuleId
         return
           <svrlii:firedRule id="{$firedRuleId}">
           {
-            for $failedAssertOrSuccessfulReportForRule in $svrl/*/*[local-name() = ('failed-assert','successful-report')][preceding-sibling::svrl:fired-rule[1][@id = data($firedRuleId)]]
+            for $failedAssertOrSuccessfulReportForRule in $activePattern/svrl:fired-rule[@id = data($firedRuleId)]/*
             return
               (: NOTE: these elements use the svrl namespace:)
               $failedAssertOrSuccessfulReportForRule
@@ -113,7 +115,7 @@ declare function local:validateSingleFile($file as document-node(), $sch as docu
   </svrlii:result>
 };
 
-declare function local:validateAndCombineSvrl($dbs as document-node()*, $sch as document-node(), $schAsXslt as document-node()) as element() {
+declare function local:validateAndCombineSvrl($dbs as document-node()*, $sch as document-node(), $schAsXslt as document-node(), $xslSvrlFormatting1 as document-node(), $xslSvrlFormatting2 as document-node()) as element() {
 
    <svrlii:SvrlResults>
    {
@@ -121,7 +123,7 @@ declare function local:validateAndCombineSvrl($dbs as document-node()*, $sch as 
     let $svrlii :=
         for$file in $dbs
         return
-          local:validateSingleFile($file,$sch,$schAsXslt)
+          prof:time(local:validateSingleFile($file,$sch,$schAsXslt,$xslSvrlFormatting1,$xslSvrlFormatting2),false(),'Time to validate and format: ')
     let $endTime := prof:current-ms()
     let $validationDuration := $endTime - $startTime
     return
@@ -474,9 +476,8 @@ declare variable $printExactLocation external := "true"; (: if set to true - ign
 (:===========================:)
 (: Default ETF parameters :)
 (:===========================:)
-
-declare variable $projDir external; (: path to folder that contains the schematron file :)
-declare variable $outputFile external; (: path of result file :)
+declare variable $projDir external;
+declare variable $outputFile external;
 
 declare variable $dbBaseName external;
 declare variable $dbCount external;
@@ -541,6 +542,9 @@ let $xslIdsForPatternsRulesAssertsFile := concat($projDir, file:dir-separator(),
 
 let $xslSvrlForXsltFile := concat($projDir, file:dir-separator(), "iso-schematron-xslt1", file:dir-separator(), "iso_svrl_for_xslt1.xsl")
 
+let $xslSvrlFormatting1File := concat($projDir, file:dir-separator(), "iso-schematron-xslt1", file:dir-separator(), "ii_svrl_formatting_1.xsl")
+let $xslSvrlFormatting2File := concat($projDir, file:dir-separator(), "iso-schematron-xslt1", file:dir-separator(), "ii_svrl_formatting_2.xsl")
+
 let $sch :=
 try{
 	doc($schFile)/iso:schema
@@ -583,6 +587,20 @@ try{
 	error($paramerror,concat("System error: the file with the XSL transformation to derive the validation stylesheet '",data($xslSvrlForXsltFile),"' was not found. Please contact the administrator.&#xa;"))
 }
 
+let $xslSvrlFormatting1 :=
+try{
+	doc($xslSvrlFormatting1File)
+} catch * {
+	error($paramerror,concat("System error: the file with the first XSL transformation to format the SVRL output '",data($xslSvrlFormatting1File),"' was not found. Please contact the administrator.&#xa;"))
+}
+
+let $xslSvrlFormatting2 :=
+try{
+	doc($xslSvrlFormatting2File)
+} catch * {
+	error($paramerror,concat("System error: the file with the first XSL transformation to format the SVRL output '",data($xslSvrlFormatting2File),"' was not found. Please contact the administrator.&#xa;"))
+}
+
 (:===========================:)
 (: Preprocessing using XSLTs :)
 (:===========================:)
@@ -599,7 +617,7 @@ let $schAsXslt := prof:time(xslt:transform($sch2.2,$xslSvrlForXslt),false(),'ISO
 (:===========================:)
 let $db := for $i in 0 to $count return db:open($dbBaseName || '-' || $i)[matches(db:path(.),$Files_to_test)]
 let $startTimeStamp := fn:current-dateTime()
-let $svrlii := local:validateAndCombineSvrl($db,$sch2.2,$schAsXslt)
-let $res := local:evaluate($svrlii,$sch2.2,$startTimeStamp,$printExactLocationEvaluated)
+let $svrlii := local:validateAndCombineSvrl($db,$sch2.2,$schAsXslt,$xslSvrlFormatting1,$xslSvrlFormatting2)
+let $res := prof:time(local:evaluate($svrlii,$sch2.2,$startTimeStamp,$printExactLocationEvaluated), false(), 'Time to evaluate: ')
 let $dummy := file:write($outputFile,$res)
 return ($res)
