@@ -5,32 +5,40 @@
 
   <xsl:output indent="yes" method="xml" omit-xml-declaration="yes"/>
 
-  <xsl:strip-space elements="*" />
-  
+  <xsl:strip-space elements="*"/>
+
   <xsl:template match="svrl:schematron-output">
     <svrlii:formattedOutput>
-      <xsl:apply-templates select="svrl:active-pattern"/>
+      <xsl:apply-templates select="svrl:active-pattern">
+        <xsl:with-param name="countSchematronOutputChildren" select="count(*)"/>
+      </xsl:apply-templates>
     </svrlii:formattedOutput>
   </xsl:template>
 
   <xsl:template match="svrl:active-pattern">
-    <xsl:variable name="posLowerExclusive" select="count(preceding-sibling::*) + 1"/>
-    <xsl:variable name="posUpperInclusive">
-      <xsl:choose>
-        <xsl:when test="following-sibling::svrl:active-pattern">
-          <xsl:value-of
-            select="count(following-sibling::svrl:active-pattern[1]/preceding-sibling::*)"/>
-        </xsl:when>
-        <xsl:otherwise>
-          <xsl:value-of select="count(../*)"/>
-        </xsl:otherwise>
-      </xsl:choose>
-    </xsl:variable>
+    <xsl:param name="countSchematronOutputChildren"/>
     <svrl:active-pattern>
       <xsl:copy-of select="@*"/>
-      <xsl:apply-templates mode="copy-no-namespaces"
-        select="../*[(position() > $posLowerExclusive) and ($posUpperInclusive >= position())]"
-      > </xsl:apply-templates>
+      <!-- identify the next sibling -->
+      <xsl:variable name="nextSibling" select="following-sibling::*[1]"/>
+      <!-- perform costly computations only if the next sibling exists and is not an 'active-pattern' -->
+      <xsl:if test="boolean($nextSibling) and not(local-name($nextSibling) = 'active-pattern')">
+        <xsl:variable name="posLowerExclusive" select="count(preceding-sibling::*) + 1"/>
+        <xsl:variable name="posUpperInclusive">
+          <xsl:choose>
+            <xsl:when test="following-sibling::svrl:active-pattern">
+              <xsl:value-of
+                select="count(following-sibling::svrl:active-pattern[1]/preceding-sibling::*)"/>
+            </xsl:when>
+            <xsl:otherwise>
+              <xsl:value-of select="$countSchematronOutputChildren"/>
+            </xsl:otherwise>
+          </xsl:choose>
+        </xsl:variable>
+        <xsl:apply-templates mode="copy-no-namespaces"
+          select="../*[(position() > $posLowerExclusive) and ($posUpperInclusive >= position())]"
+        > </xsl:apply-templates>
+      </xsl:if>
     </svrl:active-pattern>
   </xsl:template>
 
